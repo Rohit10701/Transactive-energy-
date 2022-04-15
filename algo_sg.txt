@@ -1,0 +1,204 @@
+package com.sort;
+import java.util.*;
+
+public class demand_side_management {
+
+	
+	public static void main(String[] args) {
+		Scanner sc=new Scanner(System.in);
+		ArrayList<Double> buyUnits=new ArrayList<Double>();
+		ArrayList<Double> sellUnits=new ArrayList<Double>();
+		ArrayList<Double> pricePerUnit=new ArrayList<Double>();
+		ArrayList<Integer> buyerIndex=new ArrayList<Integer>();
+		ArrayList<Integer> sellerIndex=new ArrayList<Integer>();
+		ArrayList<Double> costForBuyer=new ArrayList<Double>();
+		ArrayList<Double> incomeForSeller=new ArrayList<Double>();
+		String choice;
+		double buy,sell,ppu,demand=0,supply=0;
+		int noS,noB,index=0;
+		do {
+			System.out.print("Do you want to Buy(B) or Sell(S)? ");
+			choice = sc.next();
+			sc.nextLine();
+			if(choice.equalsIgnoreCase("B")) {
+				System.out.print("\nEnter the no. of units needed: ");
+				buy=sc.nextDouble();
+				demand+=buy;
+				buyUnits.add(buy);
+				buyerIndex.add(++index);
+			}
+			else if(choice.equalsIgnoreCase("S")) {
+				System.out.print("\nEnter the no. of units to be sold: ");
+				sell=sc.nextDouble();
+				System.out.print("Enter the price per unit: ");
+				ppu=sc.nextDouble();
+				if(ppu>=1.5 && ppu<=3.0) {
+					supply+=sell;
+					sellUnits.add(sell);
+					pricePerUnit.add(ppu);
+					sellerIndex.add(++index);
+				}
+				else {
+					System.out.println("Error!! The price per unit has to be in the range of 1.5 to 3.0!!");
+				}
+			}
+			else {
+				choice="";
+			}
+		}while(choice!="");
+		
+		noS=sellUnits.size();
+		noB=buyUnits.size();
+		
+		//Sort supply based on pricePerUnit
+		for(int i=0;i<noS-1;i++) {
+			for(int j=i+1;j<noS;j++) {
+				if(pricePerUnit.get(i)>pricePerUnit.get(j)) {
+					Collections.swap(sellUnits,i,j);
+					Collections.swap(pricePerUnit, i, j);
+					Collections.swap(sellerIndex,i,j);
+				}
+			}
+		}
+		
+		//Sort demand in ascending order
+		for(int i=0;i<noB-1;i++) {
+			for(int j=i+1;j<noB;j++) {
+				if(buyUnits.get(i)>buyUnits.get(j)) {
+					Collections.swap(buyUnits, i, j);
+					Collections.swap(buyerIndex, i, j);
+				}
+			}
+		}
+		
+
+		ArrayList<Double> initialBuyUnits=new ArrayList<Double>(buyUnits);
+		ArrayList<Double> initialSellUnits=new ArrayList<Double>(sellUnits);
+		double initialSupply=supply,initialDemand=demand,totalCost,totalIncome;
+		
+		if(supply<demand) {
+			//distribute units to buyers
+			for(int i=0;i<noB;i++) {
+				double pivot=buyUnits.get(i);
+				if(supply>pivot*(noB-i)) {
+					for(int j=i;j<noB;j++)
+						buyUnits.set(j,buyUnits.get(j)-pivot);	
+					supply=supply-(pivot*(noB-i));
+				}
+				else {
+					pivot=supply/(noB-i);
+					for(int j=i;j<noB;j++)
+						buyUnits.set(j,buyUnits.get(j)-pivot);
+					break;
+				}	
+			}
+			
+			//calculate average price
+			double coatedPrice=0,avgPrice;
+			for(int i=0;i<noS;i++) {
+				coatedPrice+=initialSellUnits.get(i)*pricePerUnit.get(i);
+			}
+			avgPrice=coatedPrice/initialSupply;
+			
+			//Cost for each buyer
+			totalCost=0;
+			for(int i=0;i<buyUnits.size();i++) {
+				double unitsBought=initialBuyUnits.get(i)-buyUnits.get(i);
+				double cost=0;
+				if(unitsBought<=200)
+					cost=unitsBought*avgPrice;
+				else if(unitsBought>200 && unitsBought<=400)
+					cost=(200*avgPrice)+((unitsBought-200)*1.5*avgPrice);
+				else if(unitsBought>400 && unitsBought<=800)
+					cost=(200*avgPrice)+(200*1.5*avgPrice)+((unitsBought-400)*2.1667*avgPrice);
+				else if(unitsBought>800 && unitsBought<=1200)
+					cost=(200*avgPrice)+(200*1.5*avgPrice)+(400*2.1667*avgPrice)+((unitsBought-800)*2.3333*avgPrice);
+				else
+					cost=(200*avgPrice)+(200*1.5*avgPrice)+(400*2.1667*avgPrice)+(400*2.3333*avgPrice)+((unitsBought-1200)*2.6667*avgPrice);
+				
+				costForBuyer.add(cost);
+				totalCost+=cost;
+			}
+			
+			//Calculate income for seller
+			double penaltyPerUnit= (totalCost-coatedPrice)/initialSupply;
+			totalIncome=0;
+			for(int i=0;i<noS;i++) {
+				double income=(pricePerUnit.get(i)+penaltyPerUnit)*sellUnits.get(i);
+				incomeForSeller.add(income);
+				totalIncome+=income;
+			}
+			
+		}
+		
+		else {
+			//distribute units to buyers
+			for(int i=0;i<noS;i++) {
+				if(demand>sellUnits.get(i)) {
+					demand-=sellUnits.get(i);
+					sellUnits.set(i, 0.0);
+				}
+				else {
+					double bal=sellUnits.get(i)-demand;
+					sellUnits.set(i, bal);
+					break;
+				}
+			}
+			
+			//calculate average price
+			double coatedPrice=0,avgPrice=0;
+			for(int i=0;i<noS;i++) {
+				double unitsSold=initialSellUnits.get(i)-sellUnits.get(i);
+				coatedPrice+=unitsSold*pricePerUnit.get(i);
+			}
+			avgPrice=coatedPrice/initialDemand;
+			
+			//Cost for each buyer
+			totalCost=0;
+			for(int i=0;i<buyUnits.size();i++) {
+				double unitsBought=initialBuyUnits.get(i);
+				double cost=0;
+				if(unitsBought<=200)
+					cost=unitsBought*avgPrice;
+				else if(unitsBought>200 && unitsBought<=400)
+					cost=(200*avgPrice)+((unitsBought-200)*1.5*avgPrice);
+				else if(unitsBought>400 && unitsBought<=800)
+					cost=(200*avgPrice)+(200*1.5*avgPrice)+((unitsBought-400)*2.1667*avgPrice);
+				else if(unitsBought>800 && unitsBought<=1200)
+					cost=(200*avgPrice)+(200*1.5*avgPrice)+(400*2.1667*avgPrice)+((unitsBought-800)*2.3333*avgPrice);
+				else
+					cost=(200*avgPrice)+(200*1.5*avgPrice)+(400*2.1667*avgPrice)+(400*2.3333*avgPrice)+((unitsBought-1200)*2.6667*avgPrice);
+				
+				costForBuyer.add(cost);
+				totalCost+=cost;
+			}
+			
+			//Calculate income for seller
+			double penaltyPerUnit= (totalCost-coatedPrice)/initialDemand;
+			totalIncome=0;
+			for(int i=0;i<noS;i++) {
+				double income=(pricePerUnit.get(i)+penaltyPerUnit)*(initialSellUnits.get(i)-sellUnits.get(i));
+				incomeForSeller.add(income);
+				totalIncome+=income;
+			}
+			
+		}
+			
+		System.out.println("--------------------------------------------------------------------------------------------------------------------");
+		System.out.println("\nPrice paid by the buyers: \n");
+		for(int i=0;i<noB;i++) {				
+			System.out.println("House "+buyerIndex.get(i)+": "+costForBuyer.get(i));
+		}
+		System.out.println("\nTotal Price Paid: "+totalCost);
+			
+		
+		System.out.println("--------------------------------------------------------------------------------------------------------------------");
+		System.out.println("\nIncome earned by the sellers: \n");
+		for(int i=0;i<noS;i++) {
+			System.out.println("House "+sellerIndex.get(i)+": "+incomeForSeller.get(i));
+		}
+		System.out.println("\nTotal Income: "+totalIncome);
+			
+	}
+}
+	
